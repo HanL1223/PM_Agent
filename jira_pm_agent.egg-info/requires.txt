@@ -1,0 +1,7 @@
+langgraph>=0.2.76
+langchain-core>=0.3.55
+langchain-anthropic>=0.3.0
+langchain-openai>=0.3.14
+pydantic>=2.11.3
+python-dotenv>=1.1.0
+requests>=2.32.0

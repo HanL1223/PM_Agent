@@ -1,0 +1,33 @@
+[project]
+name = "jira-pm-agent"
+version = "0.1.0"
+description = "A local multi-agent (LangGraph) AI assistant for Jira project management: ticket drafting, sprint health, and NL querying."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    # LangGraph + LangChain core for the multi-agent graph and tools.
+    "langgraph>=0.2.76",
+    "langchain-core>=0.3.55",
+    # Both providers are listed so you can switch with one env var. They import
+    # lazily in pmagent/llm.py, so only the selected one is actually used.
+    "langchain-anthropic>=0.3.0",
+    "langchain-openai>=0.3.14",
+    # Typed state + structured outputs.
+    "pydantic>=2.11.3",
+    # Env loading and Jira REST calls.
+    "python-dotenv>=1.1.0",
+    "requests>=2.32.0",
+]
+
+[tool.setuptools]
+# Only the agent package is installed; the frontend imports it.
+packages = ["pmagent"]
+
+[dependency-groups]
+# Dev-only tooling. langgraph-cli/api let you run `langgraph dev` (Studio) and
+# build the deployment image. Not needed for the plain CLI.
+dev = [
+    "langgraph-cli>=0.2.6",
+    "langgraph-api>=0.2.18",
+    "ipykernel>=6.29.5",
+]

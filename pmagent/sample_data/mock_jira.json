@@ -1,0 +1,103 @@
+{
+  "project": { "key": "EDP", "name": "Enterprise Data Platform" },
+  "sprint": {
+    "id": 24,
+    "name": "Sprint 24",
+    "state": "active",
+    "startDate": "2026-05-26",
+    "endDate": "2026-06-09"
+  },
+  "issues": [
+    {
+      "key": "EDP-401",
+      "summary": "Backfill historical FX rates from RBA monthly dataset",
+      "type": "Story",
+      "status": "Done",
+      "story_points": 5,
+      "assignee": "Han Li",
+      "blocked": false,
+      "flagged": false,
+      "days_in_status": 2,
+      "labels": ["fx", "warehouse", "rba"],
+      "components": ["FX Pipeline"]
+    },
+    {
+      "key": "EDP-402",
+      "summary": "dbt silver model for end-of-month FX rates",
+      "type": "Story",
+      "status": "Done",
+      "story_points": 3,
+      "assignee": "Han Li",
+      "blocked": false,
+      "flagged": false,
+      "days_in_status": 1,
+      "labels": ["fx", "dbt"],
+      "components": ["FX Pipeline"]
+    },
+    {
+      "key": "EDP-410",
+      "summary": "Snowflake physical inventory UNION ALL reporting query",
+      "type": "Story",
+      "status": "In Progress",
+      "story_points": 8,
+      "assignee": "Harrison Wilson",
+      "blocked": false,
+      "flagged": false,
+      "days_in_status": 2,
+      "labels": ["snowflake", "inventory", "reporting"],
+      "components": ["Reporting"]
+    },
+    {
+      "key": "EDP-411",
+      "summary": "Fix join failures on Fact_Product_Warehouse_Detail (Storage_Type mismatch)",
+      "type": "Bug",
+      "status": "Blocked",
+      "story_points": 3,
+      "assignee": "Harrison Wilson",
+      "blocked": true,
+      "flagged": true,
+      "days_in_status": 4,
+      "labels": ["snowflake", "bug"],
+      "components": ["Reporting"]
+    },
+    {
+      "key": "EDP-415",
+      "summary": "ADF migration: BranchInfoGlobal filter + NZD currency logic",
+      "type": "Story",
+      "status": "In Progress",
+      "story_points": 5,
+      "assignee": "Test",
+      "blocked": false,
+      "flagged": false,
+      "days_in_status": 5,
+      "labels": ["adf", "ardm", "nzd"],
+      "components": ["Ingestion"]
+    },
+    {
+      "key": "EDP-420",
+      "summary": "dbt address standardisation macro library (AU/NZ/UK)",
+      "type": "Story",
+      "status": "To Do",
+      "story_points": 8,
+      "assignee": null,
+      "blocked": false,
+      "flagged": false,
+      "days_in_status": 0,
+      "labels": ["dbt", "address", "platinum"],
+      "components": ["Transform"]
+    },
+    {
+      "key": "EDP-421",
+      "summary": "Resolve VOIDED_FLAG anomaly from ARDM_EVENT merge collision",
+      "type": "Bug",
+      "status": "To Do",
+      "story_points": 2,
+      "assignee": null,
+      "blocked": false,
+      "flagged": false,
+      "days_in_status": 0,
+      "labels": ["adf", "ardm", "bug"],
+      "components": ["Ingestion"]
+    }
+  ]
+}

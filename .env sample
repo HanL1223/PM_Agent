@@ -1,0 +1,30 @@
+#  LLM PROVIDER
+#  "anthropic" (default) or "openai"
+# LLM_PROVIDER=openai 
+#  Optional model override. Defaults: claude-3-5-sonnet-latest / gpt-4.1-mini
+#  LLM_MODEL=
+
+#  Set the key for whichever provider you selected above.
+# ANTHROPIC_API_KEY=
+# OPENAI_API_KEY=
+#  JIRA  (all optional — leave blank to run in MOCK mode with bundled sample data)
+#   https://id.atlassian.com/manage-profile/security/api-tokens
+# JIRA_BASE_URL=
+# JIRA_EMAIL=
+# JIRA_API_TOKEN
+# JIRA_PROJECT_KEY=
+
+# # Default Story points fieled
+# JIRA_STORY_POINTS_FIELD=customfield_10052
+
+#  Force mock mode even if the above are set (useful for offline demos).
+# JIRA_MOCK=true
+
+#  =============================================================================
+# OBSERVABILITY  (optional — LangSmith tracing)
+#  =============================================================================
+#  LANGSMITH_TRACING=true
+#  LANGSMITH_ENDPOINT=https://api.smith.langchain.com
+#  LANGSMITH_API_KEY=
+#  LANGSMITH_PROJECT=jira-pm-agent
+
