@@ -10,6 +10,8 @@ Key implementation notes:
   "Story point estimate" field: customfield_10052.
 """
 
+from __future__ import annotations
+
 import json
 import os
 from typing import Any
@@ -20,11 +22,11 @@ from langchain_core.tools import tool
 from pmagent import env
 
 
-
-#Test file locations
+# ---------------------------------------------------------------------------
+# Mock data location
+# ---------------------------------------------------------------------------
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 _MOCK_PATH = os.path.join(_PROJECT_ROOT, "sample_data", "mock_jira.json")
-
 
 
 def get_story_points_field() -> str:
@@ -36,7 +38,6 @@ def get_story_points_field() -> str:
         JIRA_STORY_POINTS_FIELD=customfield_10052
     """
     return os.getenv("JIRA_STORY_POINTS_FIELD", "customfield_10052").strip()
-
 
 
 def _jira_read_fields() -> list[str]:
@@ -55,16 +56,15 @@ def _jira_read_fields() -> list[str]:
 
 
 class JiraClient:
-    """
-    Owns all Jira I/O.
+    """Owns all Jira I/O.
 
     In mock mode the dataset is loaded once into memory.
     In real mode we use Jira Cloud REST v3 + Jira Agile API.
     """
 
-    def __init__(self) ->None:
+    def __init__(self) -> None:
         self.mock = env.JIRA_MOCK
-        self._data: dict[str,Any] = {}
+        self._data: dict[str, Any] = {}
 
         if self.mock:
             with open(_MOCK_PATH, "r", encoding="utf-8") as f:
@@ -80,11 +80,11 @@ class JiraClient:
             )
             self._base = env.JIRA_BASE_URL.rstrip("/")
 
-        #Reading
-    def search_issues(self,jql:str,max_results: int = 25) -> list[dict]:
-        """
-        Return isseus matching a JQL query as simplified flat dicts
-        """
+    # ------------------------------------------------------------------
+    # Reads
+    # ------------------------------------------------------------------
+    def search_issues(self, jql: str, max_results: int = 25) -> list[dict]:
+        """Return issues matching a JQL query as simplified flat dicts."""
         if self.mock:
             import re
 
@@ -126,9 +126,11 @@ class JiraClient:
                 issues = filtered or issues
 
             return issues[:max_results]
-    
+
+        # Always prefer newest Jira issues first unless the caller already
+        # supplied an ORDER BY clause.
         if "ORDER BY" not in jql.upper():
-            jql =f"({jql}) ORDER BY created DESC"
+            jql = f"({jql}) ORDER BY created DESC"
 
         fields = _jira_read_fields()
 
@@ -142,24 +144,22 @@ class JiraClient:
         )
         resp.raise_for_status()
 
-        return [self._normalise_issue(i) for i in resp.json().get("issues",[])]
-    
-    def get_issue(self,key:str) -> dict:
-        """
-        Get 1 Jira Issues by issue key and return a simplified flat dict
-        """
+        return [self._normalise_issue(i) for i in resp.json().get("issues", [])]
+
+    def get_issue(self, key: str) -> dict:
+        """Get one Jira issue by issue key and return a simplified flat dict."""
         if self.mock:
             for issue in self._data["issues"]:
                 if issue.get("key", "").upper() == key.upper():
                     return issue
             raise ValueError(f"Issue {key} not found in mock data.")
+
         resp = self._session.get(
             f"{self._base}/rest/api/3/issue/{key}",
-            params = {"fields":",".join(_jira_read_fields())},
+            params={"fields": ",".join(_jira_read_fields())},
         )
         resp.raise_for_status()
-        return self._normalised_issue(resp.json())
-    
+        return self._normalise_issue(resp.json())
 
     def get_myself(self) -> dict:
         """Return the Jira account represented by the current API token."""
@@ -169,19 +169,25 @@ class JiraClient:
         resp = self._session.get(f"{self._base}/rest/api/3/myself")
         resp.raise_for_status()
         return resp.json()
-    
+
     def list_projects(self) -> list[dict]:
         """List projects visible to the current Jira API user."""
         if self.mock:
             project = self._data.get("project", {})
             return [{"key": project.get("key"), "name": project.get("name")}]
-        
+
         resp = self._session.get(f"{self._base}/rest/api/3/project/search")
         resp.raise_for_status()
         data = resp.json()
-        return [ {"id":p.get("id"),
-                    "key":p.get("key"),
-                    "name":p.get("name")} for p in data.get("values",[])]
+        return [
+            {
+                "id": p.get("id"),
+                "key": p.get("key"),
+                "name": p.get("name"),
+            }
+            for p in data.get("values", [])
+        ]
+
     def get_sprint_issues(self, sprint_id: int) -> dict:
         """Return sprint metadata and normalised sprint issues.
 
@@ -195,15 +201,16 @@ class JiraClient:
                 "issues": self._data.get("issues", []),
             }
 
-        # Fetch sprint metadata so compute_sprint_metrics has sprint["name"]. 
-        sprint_resp = self._session.get(f"{self._base}/rest/agile/1.0/sprint/{sprint_id}")
+        # Fetch sprint metadata so compute_sprint_metrics has sprint["name"].
+        sprint_resp = self._session.get(
+            f"{self._base}/rest/agile/1.0/sprint/{sprint_id}"
+        )
         sprint_resp.raise_for_status()
         sprint = sprint_resp.json()
 
-
         fields = _jira_read_fields()
-        all_raw_issues:list[dict] =[]
-        start_at =0
+        all_raw_issues: list[dict] = []
+        start_at = 0
         max_results = 100
 
         while True:
@@ -213,9 +220,8 @@ class JiraClient:
                     "fields": ",".join(fields),
                     "startAt": start_at,
                     "maxResults": max_results,
-                    },
+                },
             )
-
             resp.raise_for_status()
             data = resp.json()
 
@@ -239,8 +245,9 @@ class JiraClient:
 
         return {
             "sprint": sprint,
-            "issues": [self._normalise_issue(i) for i in all_raw_issues]
+            "issues": [self._normalise_issue(i) for i in all_raw_issues],
         }
+
     def list_boards(self, project_key: str | None = None) -> list[dict]:
         """List Agile boards visible to the current Jira API user."""
         if self.mock:
@@ -265,7 +272,7 @@ class JiraClient:
             }
             for b in data.get("values", [])
         ]
-        
+
     def list_board_sprints(
         self,
         board_id: int,
@@ -372,12 +379,12 @@ class JiraClient:
         matches.sort(key=lambda x: state_priority.get(x.get("state"), 99))
 
         return int(matches[0]["sprint_id"])
-    
 
-    #Writing
-
-    def creat_issues(self,draft:dict) -> dict:
-        """Create a Jira issue from a TicketDraft-shaped dict"""
+    # ------------------------------------------------------------------
+    # Writes
+    # ------------------------------------------------------------------
+    def create_issue(self, draft: dict) -> dict:
+        """Create a Jira issue from a TicketDraft-shaped dict."""
         if self.mock:
             project_key = self._data["project"]["key"]
             new_num = 900 + sum(
@@ -429,9 +436,10 @@ class JiraClient:
         resp = self._session.post(f"{self._base}/rest/api/3/issue", json=payload)
         resp.raise_for_status()
         return resp.json()
-    
 
-    #Helper
+    # ------------------------------------------------------------------
+    # Helpers
+    # ------------------------------------------------------------------
     @staticmethod
     def _normalise_issue(raw: dict) -> dict:
         """Flatten a raw Jira REST issue into the simple shape our code uses."""
@@ -460,10 +468,14 @@ class JiraClient:
             "components": [c.get("name") for c in f.get("components", [])],
         }
 
+
 # Single shared instance, created at import time.
 client = JiraClient()
 
+
+
 # Deterministic analytics
+
 def compute_sprint_metrics(sprint_payload: dict, stuck_threshold_days: int = 3) -> dict:
     """Compute sprint-health metrics from normalised issue data."""
     issues = sprint_payload.get("issues", [])
@@ -490,7 +502,6 @@ def compute_sprint_metrics(sprint_payload: dict, stuck_threshold_days: int = 3) 
 
     completion_rate = round(done_points / total_points, 3) if total_points else 0.0
 
-    #TO BE REVIEW
     if completion_rate >= 0.7 and len(blocked) <= 1:
         risk = "LOW"
     elif completion_rate >= 0.4:
@@ -518,25 +529,25 @@ def compute_sprint_metrics(sprint_payload: dict, stuck_threshold_days: int = 3) 
         "risk_level": risk,
     }
 
-        
-#LangChain Tool
+
+
+# LangChain tools
 
 @tool
-def search_jira_issue(jql:str) -> str:
-    """
-    Searhch Jira for existing issues.
+def search_jira_issues(jql: str) -> str:
+    """Search Jira for existing issues.
 
-    Use to find duplicates, gather context for a new ticket, or answer a
+    Use this to find duplicates, gather context for a new ticket, or answer a
     user's read-only question.
 
     Args:
         jql: A Jira Query Language string, e.g.
-       'project = CSCI AND text ~ "DFIO"'. 
+             'project = CSCI AND text ~ "DFIO"'.
     """
     issues = client.search_issues(jql)
     if not issues:
-        return "No matching issues found"
-    
+        return "No matching issues found."
+
     return "\n".join(
         f"- {i['key']} [{i['type']}/{i['status']}] "
         f"{i.get('created', '')[:10]} "
@@ -547,8 +558,7 @@ def search_jira_issue(jql:str) -> str:
 
 @tool
 def get_sprint_status(sprint_id: int) -> str:
-    """
-    Get sprint progress by Jira internal sprint ID.
+    """Get sprint progress by Jira internal sprint ID.
 
     Important:
     This uses Jira's hidden internal sprint ID, not the visible sprint number.
@@ -559,6 +569,7 @@ def get_sprint_status(sprint_id: int) -> str:
     payload = client.get_sprint_issues(sprint_id)
     metrics = compute_sprint_metrics(payload)
     return json.dumps(metrics, indent=2)
+
 
 @tool
 def create_jira_issue(
