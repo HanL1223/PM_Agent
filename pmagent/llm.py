@@ -1,5 +1,5 @@
 """
-A tiny factory that returns a configured LangChain chat model.
+A factory that returns a configured LangChain chat model.
 
 The template hard-codes `ChatOpenAI`. We add one indirection so the same code
 works with Claude or OpenAI by changing a single env var. That's
