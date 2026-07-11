@@ -30,4 +30,5 @@ dev = [
     "langgraph-cli>=0.2.6",
     "langgraph-api>=0.2.18",
     "ipykernel>=6.29.5",
+    "pytest>=8.0.0",
 ]

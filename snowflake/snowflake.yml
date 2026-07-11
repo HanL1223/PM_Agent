@@ -1,0 +1,87 @@
+definition_version: "2"
+
+# Deploy with:
+#   snow snowpark build
+#   snow snowpark deploy
+# (run from this directory; requires a Snowflake CLI connection —
+# `snow connection add`)
+
+entities:
+  draft_prd:
+    type: procedure
+    identifier:
+      name: DRAFT_PRD
+      database: PO_AI_DEV
+      schema: PO_AGENT
+    handler: draft_prd.run
+    signature:
+      - name: notes
+        type: string
+    returns: string
+    runtime: "3.11"
+    stage: dev_deployment
+    execute_as_caller: false
+    artifacts:
+      - src: procs/
+        dest: ./
+
+  classify_data_product:
+    type: procedure
+    identifier:
+      name: CLASSIFY_DATA_PRODUCT
+      database: PO_AI_DEV
+      schema: PO_AGENT
+    handler: classify_data_product.run
+    signature:
+      - name: prd_text
+        type: string
+    returns: string
+    runtime: "3.11"
+    stage: dev_deployment
+    execute_as_caller: false
+    artifacts:
+      - src: procs/
+        dest: ./
+
+  capture_reporting_intent:
+    type: procedure
+    identifier:
+      name: CAPTURE_REPORTING_INTENT
+      database: PO_AI_DEV
+      schema: PO_AGENT
+    handler: reporting_intent.run
+    signature:
+      - name: prd_text
+        type: string
+      # Grounding seam — pass "" until a real retrieval step (e.g. Cortex
+      # Search over a data-object metadata table) fills this in.
+      - name: context_text
+        type: string
+    returns: string
+    runtime: "3.11"
+    stage: dev_deployment
+    execute_as_caller: false
+    artifacts:
+      - src: procs/
+        dest: ./
+
+  draft_diagram_brief:
+    type: procedure
+    identifier:
+      name: DRAFT_DIAGRAM_BRIEF
+      database: PO_AI_DEV
+      schema: PO_AGENT
+    handler: draft_diagram_brief.run
+    signature:
+      - name: prd_text
+        type: string
+      # Optional — pass "" if no Reporting Intent brief exists yet.
+      - name: reporting_intent_text
+        type: string
+    returns: string
+    runtime: "3.11"
+    stage: dev_deployment
+    execute_as_caller: false
+    artifacts:
+      - src: procs/
+        dest: ./
