@@ -58,7 +58,10 @@ drafting, PRD writing, `draft_diagram_brief`) — mock mode only stands in for
 Jira, not the LLM provider.
 
 The `snowflake/` track is separate and only matters if you're deploying to an
-actual Snowflake account — see Part 3 and `snowflake/LUCID_DIAGRAM_AGENT.md`.
+actual Snowflake account — see Part 3 below for the *why*, and
+[`snowflake/DEPLOYMENT_GUIDE.md`](snowflake/DEPLOYMENT_GUIDE.md) for a full,
+hands-on walkthrough (local unit tests, Snowflake CLI setup, `snow snowpark
+build`/`deploy`, live `CALL` testing of every procedure, troubleshooting).
 It's not needed to run or test `pmagent/`.
 
 ---
@@ -860,6 +863,17 @@ workflow.
 > `docs.snowflake.com` before relying on it if much time has passed since
 > this was written.
 
+### 3.7 Actually deploying and testing this, end to end
+
+Everything above explains the *design*. For the actual commands — installing
+Snowflake CLI, creating the database/schema/warehouse, `snow snowpark
+build`/`deploy`, calling each of the four procedures live with `CALL`, and a
+troubleshooting table for the errors you'll actually hit — see
+[`snowflake/DEPLOYMENT_GUIDE.md`](snowflake/DEPLOYMENT_GUIDE.md). It's written
+at the same teaching level as this document, cross-checked against the
+current official Snowflake CLI docs, and picks up exactly where this section
+leaves off.
+
 ---
 
 ## Part 4 — The recipe, distilled (how to build your own)
@@ -924,6 +938,7 @@ any LLM-based agent system:
 | Point the app at real Jira | set `JIRA_BASE_URL`/`JIRA_EMAIL`/`JIRA_API_TOKEN` in `.env` — `JiraClient` flips automatically |
 | Add a new Cortex stored-proc agent | copy `snowflake/procs/reporting_intent.py`'s shape: `_complete`/`_extract_json` via `cortex_common`, plain-Python formatting, register in `snowflake.yml` |
 | Wire a new external tool into Cortex without giving a proc network access | follow `snowflake/sql/lucid_mcp_setup.sql`'s pattern: `API INTEGRATION` + `EXTERNAL MCP SERVER` + `CREATE AGENT` |
+| Deploy/test the Snowflake track against a real account | [`snowflake/DEPLOYMENT_GUIDE.md`](snowflake/DEPLOYMENT_GUIDE.md) — full step-by-step, from `snow connection add` to live `CALL`s |
 | Understand what's implemented vs. scaffolding | `CLAUDE.md`'s "Architecture" section is explicit about this |
 
 ## Glossary

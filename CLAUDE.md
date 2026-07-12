@@ -32,9 +32,11 @@ snowflake/
   procs/
     draft_prd.py             # entity `draft_prd`      -> DRAFT_PRD(notes)
     classify_data_product.py # entity `classify_data_product` -> CLASSIFY_DATA_PRODUCT(prd_text)
-    reporting_intent.py      # entity `capture_reporting_intent` -> CAPTURE_REPORTING_INTENT(prd_text)
+    reporting_intent.py      # entity `capture_reporting_intent` -> CAPTURE_REPORTING_INTENT(prd_text, context_text)
+    draft_diagram_brief.py   # entity `draft_diagram_brief` -> DRAFT_DIAGRAM_BRIEF(prd_text, reporting_intent_text)
   tests/                # pure-Python unit tests, no Snowflake connection needed — run with:
                          #   uv run pytest snowflake/tests
+  DEPLOYMENT_GUIDE.md    # full deploy/test walkthrough: CLI setup, snow snowpark build/deploy, live CALLs
 ```
 
 Each proc module keeps the Cortex call isolated in one function (`_complete(session, prompt)`); everything
