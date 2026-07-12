@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git rm *)",
+      "Bash(uv run python -c ' *)",
+      "Bash(PYTHONIOENCODING=utf-8 uv run python -c ' *)"
+    ]
+  }
+}

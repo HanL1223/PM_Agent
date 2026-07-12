@@ -42,7 +42,7 @@ class TicketDraft(BaseModel):
         description="Testable, unambiguous acceptance criteria.",
     )
     story_points: int | None = Field(
-        default=None, description="Rough estimate (Fibonacci: 1,2,3,5,8...) or null."
+        default=None, description="Rough estimate of effort or null."
     )
     labels: list[str] = Field(default_factory=list)
     components: list[str] = Field(default_factory=list)
@@ -124,6 +124,43 @@ class ReviewResult(BaseModel):
     )
 
 
+class DiagramNode(BaseModel):
+    """One node in a `DiagramBrief`."""
+    id: str
+    label: str
+
+
+class DiagramEdge(BaseModel):
+    """One edge in a `DiagramBrief`."""
+    from_: str = Field(alias="from")
+    to: str
+    label: str = ""
+
+    model_config = {"populate_by_name": True}
+
+
+class DiagramBrief(BaseModel):
+    """Structured output of the Diagram Agent's `draft_diagram_brief` tool.
+
+    Mirrors `snowflake/procs/draft_diagram_brief.py`'s JSON shape exactly, so
+    the two tracks stay interchangeable even though this one gets its
+    structure via `with_structured_output` instead of prompted JSON + manual
+    parsing (Cortex there has no structured-output binding; LangChain here
+    does, so we use it — see CLAUDE.md's "LLM does judgment, plain Python
+    does arithmetic/formatting" principle: `render_diagram_brief` is the
+    deterministic formatting step, this model is just the judgment).
+    """
+    diagram_type: Literal["flowchart", "entity_relationship", "architecture", "sequence"]
+    title: str
+    description: str = Field(
+        description="Plain-English description of every node and how they "
+        "connect, precise enough to hand to a diagramming tool with no other "
+        "context."
+    )
+    nodes: list[DiagramNode] = Field(default_factory=list)
+    edges: list[DiagramEdge] = Field(default_factory=list)
+
+
 class RouteDecision(BaseModel):
     """The Orchestrator's intent-classification output.
 
@@ -157,9 +194,13 @@ class PMState(BaseModel):
         ticket_draft: Last ticket proposed by the Ticket Agent (for the UI).
         sprint_report: Last computed sprint analysis (for the UI).
         prd: Last PRD produced by the Requirements Agent (structured form).
+        diagram_brief: Last brief produced by the Diagram Agent (for the UI,
+            and as the `description` handed to Lucid's MCP `create_diagram`
+            tool once the user confirms it).
     """
     messages: Annotated[list[BaseMessage], add_messages] = []
     route: str = ""
     ticket_draft: dict = {}
     sprint_report: dict = {}
     prd: dict = {}
+    diagram_brief: dict = {}

@@ -57,6 +57,24 @@ There is no test suite, linter, or CI config in this repo yet.
 Optional dev tooling (`dependency-groups.dev` in `pyproject.toml`): `langgraph-cli`/`langgraph-api` for
 `langgraph dev` (LangGraph Studio), and `ipykernel`. Not required for the plain CLI.
 
+### Verifying a fresh checkout / new device
+
+`graph.py` doesn't exist yet (see Architecture below), so there's no end-to-end CLI to run — `uv run main.py`
+is still the placeholder. To sanity-check that a fresh `uv sync` actually works (deps resolve, mock Jira data
+loads, tools execute), exercise the pieces directly:
+
+```bash
+uv run python -c "
+from pmagent.tools.jira_tools import search_jira_issues, get_sprint_status
+print(search_jira_issues.invoke({'jql': 'project = CSCI'})[:200])
+print(get_sprint_status.invoke({'sprint_id': 24})[:200])
+"
+```
+
+Both should print real output sourced from `pmagent/sample_data/mock_jira.json` with zero env config. If this
+fails with `FileNotFoundError` on `mock_jira.json`, something is wrong with the checkout path, not the code —
+`JiraClient`'s mock path is resolved relative to `pmagent/tools/jira_tools.py`'s own `__file__`, not cwd.
+
 ### Environment
 
 Copy `.env sample` to `.env`. Key vars (all read centrally in `pmagent/env.py` — never call `os.getenv`
@@ -69,6 +87,9 @@ elsewhere, add new vars there):
   `customfield_10052`).
 - `JIRA_MOCK`: forced on automatically whenever `JIRA_BASE_URL` is unset, so the app runs against
   `pmagent/sample_data/mock_jira.json` with zero config.
+- `LUCID_MCP_URL` (defaults to Lucid's hosted endpoint), `LUCID_MCP_AUTH_TOKEN` (only needed if your Lucid plan
+  issued a static OAuth client secret instead of relying on per-user Dynamic Client Registration) — used by
+  `pmagent/tools/mcp_tools.py`, the Diagram Agent's MCP client.
 
 ## Architecture
 
@@ -83,9 +104,9 @@ cut off after line 42). Treat these as in-progress scaffolding, not working code
 ### Core design principles baked into the code (evident from comments — follow them when extending)
 
 - **Structured data over prose between agents.** `PMState` (in `state.py`) carries typed slots
-  (`ticket_draft`, `sprint_report`, `prd`) alongside the conversational `messages` channel, so the frontend and
-  other agents consume typed data, not parsed text. Routing (`RouteDecision`) and PRD review (`ReviewResult`)
-  also use `with_structured_output` / Pydantic schemas rather than parsing free text.
+  (`ticket_draft`, `sprint_report`, `prd`, `diagram_brief`) alongside the conversational `messages` channel, so
+  the frontend and other agents consume typed data, not parsed text. Routing (`RouteDecision`) and PRD review
+  (`ReviewResult`) also use `with_structured_output` / Pydantic schemas rather than parsing free text.
 - **LLM does judgment, plain Python does arithmetic/formatting.** Sprint metrics (`compute_sprint_metrics` in
   `jira_tools.py`) and PRD markdown rendering are deterministic Python; the LLM only narrates over them. Never
   push arithmetic that drives a delivery decision into a prompt.
@@ -109,6 +130,13 @@ cut off after line 42). Treat these as in-progress scaffolding, not working code
   `retrieve_company_context` is a deliberate no-op unless `sample_data/company_docs/*.md|*.txt` exist — it's
   meant to be swapped for real Confluence/RAG retrieval later without changing its signature or call sites.
   Don't "fix" it into something more complex unless asked to actually implement retrieval.
+- **MCP servers follow one pattern: isolate the client, compose tools in the lane.** `tools/mcp_tools.py` is the
+  reference for wiring any external MCP server in — `MultiServerMCPClient` config lives in one `_SERVERS` dict,
+  discovery (`get_lucid_tools`) is `async`. Because discovery is a network call, a lane that binds MCP tools
+  can't use a static `TOOLS = [...]` like `ticket_agent.py`; see `agents/diagram_agent.py`'s `build_tools()` for
+  the shape — local tools + `await get_lucid_tools()`, called once at graph-build time, with the graph then run
+  via `.ainvoke`/`.astream`. Mirrors `snowflake/sql/lucid_mcp_setup.sql` on the Snowflake track, minus the
+  Snowflake-managed connector runtime.
 
 ### Jira integration (`pmagent/tools/jira_tools.py`)
 

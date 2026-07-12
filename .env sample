@@ -1,0 +1,41 @@
+# Copy this file to `.env` and fill in what you need.
+#
+# Nothing here is required to run the app: with no keys set, JIRA_MOCK turns
+# on automatically (reads pmagent/sample_data/mock_jira.json instead of a
+# real Jira instance), but you do need an LLM API key for the provider you
+# select below — the app makes real model calls even in Jira-mock mode.
+
+# --- LLM ---------------------------------------------------------------
+# "anthropic" (default) or "openai". Only that provider's key below is required.
+LLM_PROVIDER=anthropic
+
+# Optional: override the per-provider default model (see pmagent/env.py).
+# LLM_MODEL=
+
+ANTHROPIC_API_KEY=
+OPENAI_API_KEY=
+
+# --- Jira ----------------------------------------------------------------
+# Leave all three blank to run against the bundled mock data
+# (pmagent/sample_data/mock_jira.json) with zero Jira setup.
+JIRA_BASE_URL=
+JIRA_EMAIL=
+JIRA_API_TOKEN=
+JIRA_PROJECT_KEY=CSCI
+# Sigma's "Story point estimate" custom field. Override if yours differs.
+JIRA_STORY_POINTS_FIELD=customfield_10052
+# Force mock mode even if JIRA_BASE_URL is set. Auto-on whenever
+# JIRA_BASE_URL is unset, so you normally don't need to set this.
+# JIRA_MOCK=true
+
+# --- Optional observability -----------------------------------------------
+# LANGSMITH_API_KEY=
+
+# --- MCP servers (pmagent/tools/mcp_tools.py) ------------------------------
+# Lucid's hosted MCP server, used by the Diagram Agent. Defaults to Lucid's
+# public endpoint; only needed if a lane actually binds Lucid tools.
+# LUCID_MCP_URL=https://mcp.lucid.app/mcp
+# Only set this if your Lucid plan issued a static OAuth client secret —
+# otherwise the first Lucid tool call triggers a one-time per-user OAuth
+# login (Dynamic Client Registration) and no token is needed here.
+# LUCID_MCP_AUTH_TOKEN=

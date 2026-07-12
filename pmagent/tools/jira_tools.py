@@ -25,8 +25,8 @@ from pmagent import env
 # ---------------------------------------------------------------------------
 # Mock data location
 # ---------------------------------------------------------------------------
-_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-_MOCK_PATH = os.path.join(_PROJECT_ROOT, "sample_data", "mock_jira.json")
+_PACKAGE_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_MOCK_PATH = os.path.join(_PACKAGE_ROOT, "sample_data", "mock_jira.json")
 
 
 def get_story_points_field() -> str:
@@ -37,7 +37,7 @@ def get_story_points_field() -> str:
 
         JIRA_STORY_POINTS_FIELD=customfield_10052
     """
-    return os.getenv("JIRA_STORY_POINTS_FIELD", "customfield_10052").strip()
+    return env.JIRA_STORY_POINTS_FIELD
 
 
 def _jira_read_fields() -> list[str]:
@@ -595,7 +595,7 @@ def create_jira_issue(
         "project_key": (
             client._data.get("project", {}).get("key")
             if client.mock
-            else os.getenv("JIRA_PROJECT_KEY", "CSCI")
+            else env.JIRA_PROJECT_KEY
         ),
     }
     result = client.create_issue(draft)
@@ -617,7 +617,7 @@ def get_supply_chain_sprint_status(sprint_number: int) -> str:
     """
     local_client = JiraClient()
 
-    project_key = os.getenv("JIRA_PROJECT_KEY", "CSCI")
+    project_key = env.JIRA_PROJECT_KEY
     sprint_name = f"Supply Chain Sprint {sprint_number}"
 
     sprint_id = local_client.find_sprint_id_by_name(

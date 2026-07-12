@@ -12,6 +12,9 @@ dependencies = [
     # lazily in pmagent/llm.py, so only the selected one is actually used.
     "langchain-anthropic>=0.3.0",
     "langchain-openai>=0.3.14",
+    # Standard way to pull an external MCP server's tools into a LangChain
+    # agent lane — see pmagent/tools/mcp_tools.py.
+    "langchain-mcp-adapters>=0.3.0",
     # Typed state + structured outputs.
     "pydantic>=2.11.3",
     # Env loading and Jira REST calls.

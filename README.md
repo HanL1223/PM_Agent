@@ -25,6 +25,44 @@ that constraint and which parts have to change is where the real lessons are.
 
 ---
 
+## Getting started (testing this on a new machine)
+
+```bash
+git clone <this repo>
+cd PM_Agent
+uv sync                        # installs pmagent's deps into .venv (needs Python >=3.12; uv fetches it per .python-version)
+cp ".env sample" .env          # then fill in at least ANTHROPIC_API_KEY (or OPENAI_API_KEY + LLM_PROVIDER=openai)
+uv run main.py                 # currently just prints the placeholder "Hello from pm-agent!"
+```
+
+`pmagent/` has no CLI/chat loop yet (`graph.py`, the thing that would wire the
+agents into a runnable conversation, doesn't exist — see Part 2). What you
+*can* run today is every individual piece — tools, agent tool-lists, prompt
+loading, the mock Jira client — directly. This also doubles as your
+"did the install actually work" check on a fresh device, since there's no
+test suite:
+
+```bash
+uv run python -c "
+from pmagent.tools.jira_tools import search_jira_issues, get_sprint_status
+print(search_jira_issues.invoke({'jql': 'project = CSCI'})[:200])
+print(get_sprint_status.invoke({'sprint_id': 24})[:200])
+"
+```
+
+Both calls should print real text sourced from `pmagent/sample_data/mock_jira.json`
+— no Jira account, no `JIRA_*` env vars needed (`JIRA_MOCK` turns on
+automatically whenever `JIRA_BASE_URL` is unset). You *do* still need a
+working LLM key in `.env` for anything that calls a model (routing, ticket
+drafting, PRD writing, `draft_diagram_brief`) — mock mode only stands in for
+Jira, not the LLM provider.
+
+The `snowflake/` track is separate and only matters if you're deploying to an
+actual Snowflake account — see Part 3 and `snowflake/LUCID_DIAGRAM_AGENT.md`.
+It's not needed to run or test `pmagent/`.
+
+---
+
 ## Part 1 — The core ideas (taught through `pmagent/`)
 
 One term first, since everything below assumes it: an **AI agent**, as used
@@ -52,6 +90,7 @@ class PMState(BaseModel):
     ticket_draft: dict = {}
     sprint_report: dict = {}
     prd: dict = {}
+    diagram_brief: dict = {}
 ```
 
 **Reading the code, piece by piece** (if any of this syntax is new to you):
@@ -83,8 +122,8 @@ list, which is what gives the agent memory within a conversation.
 > passing it on — nobody erases what came before, and nobody has to
 > re-explain the whole history verbally to the next department (that would
 > be a game of telephone, where details get lost or garbled at every hop).
-> `route`, `ticket_draft`, `sprint_report`, and `prd` are each department's
-> dedicated section on that clipboard.
+> `route`, `ticket_draft`, `sprint_report`, `prd`, and `diagram_brief` are each
+> department's dedicated section on that clipboard.
 
 The comment at the top of `state.py` names this explicitly: *"agents should
 exchange structured data, not giant text blobs."* This is the single most
@@ -422,6 +461,77 @@ codebase never branches on which provider is active.
 > swapping the supplier (Anthropic ↔ OpenAI) is flipping one switch, not
 > rewiring every room.
 
+### 1.11 Importing an external MCP server as a tool
+
+**Files:** [`pmagent/tools/mcp_tools.py`](pmagent/tools/mcp_tools.py),
+[`pmagent/tools/diagram_tools.py`](pmagent/tools/diagram_tools.py),
+[`pmagent/agents/diagram_agent.py`](pmagent/agents/diagram_agent.py)
+
+Every tool so far (`search_jira_issues`, `create_jira_issue`,
+`get_sprint_status`) is a local Python function wrapped in `@tool`. **MCP**
+(Model Context Protocol) is a standard for pulling in tools you *didn't*
+write — a call to a remote server that returns "here are my tools, and here's
+how to call them" — so an agent can use, say, Lucid's diagramming
+capabilities without you hand-writing a `requests` wrapper around Lucid's
+API. `langchain-mcp-adapters` is the library that speaks MCP and hands back
+the result as ordinary LangChain `BaseTool` objects — indistinguishable, from
+a lane's point of view, from a local `@tool`:
+
+```python
+# pmagent/tools/mcp_tools.py
+_SERVERS = {
+    "lucid": {
+        "url": env.LUCID_MCP_URL,
+        "transport": "streamable_http",
+        "headers": {"Authorization": f"Bearer {env.LUCID_MCP_AUTH_TOKEN}"} if env.LUCID_MCP_AUTH_TOKEN else {},
+    },
+}
+
+async def get_lucid_tools() -> list[BaseTool]:
+    return await MultiServerMCPClient(_SERVERS).get_tools(server_name="lucid")
+```
+
+The one genuinely new wrinkle: discovering an MCP server's tools is a
+network round trip, so it's `async`, and it has to happen *once*, before the
+graph is built — not lazily the first time a lane runs. That's why
+`diagram_agent.py` can't declare a static `TOOLS = [...]` the way
+`ticket_agent.py` does; instead it exposes a `build_tools()` coroutine:
+
+```python
+LOCAL_TOOLS = [draft_diagram_brief]
+
+async def build_tools() -> list:
+    return [*LOCAL_TOOLS, *(await get_lucid_tools())]
+```
+
+Whatever eventually builds `graph.py` awaits `build_tools()` once at startup
+and binds the result, same as any other lane's tool list — the only other
+consequence is that a lane holding MCP tools needs its graph run with
+`.ainvoke`/`.astream` rather than `.invoke`/`.stream`, since the tool calls
+stay async all the way through.
+
+`draft_diagram_brief` (in `diagram_tools.py`) is the local half of this
+lane — it never talks to Lucid, it only turns an approved PRD into a
+`DiagramBrief` (a `with_structured_output` schema, per 1.2) that gets handed
+to Lucid's MCP `create_diagram` tool once the user confirms it, per
+`prompts/diagram_agent.md`'s gate (see 1.6 — same prompt-enforced-not-code-
+enforced caveat applies here, since the write happens inside Lucid's own MCP
+tool, outside any Python you control).
+
+> **Analogy:** a local `@tool` is hiring a specialist yourself and writing
+> their job description (the function + docstring). An MCP server is more
+> like contracting an outside agency: you don't write their staff's job
+> descriptions, you just ask the agency "what can your people do?" once
+> (tool discovery) and then dispatch work to them the same way you would to
+> your own hires.
+
+This is the direct pmagent-track twin of the Snowflake track's Lucid MCP
+integration (3.5) — same idea (local brief-writer + Lucid MCP tool, gated by
+a confirm-before-write instruction), different plumbing because there's no
+Snowflake-managed connector runtime here: `langchain-mcp-adapters` is doing
+in Python what Snowflake's `EXTERNAL MCP SERVER`/`CREATE AGENT` machinery
+does at the platform level. Worth reading both side by side.
+
 ---
 
 ## Part 2 — How it all connects (the intended graph)
@@ -632,7 +742,9 @@ contract; the body stays swappable.
 
 This feature (draw a Lucidchart diagram from an approved PRD) is the
 sharpest illustration in the whole repo of *"the constraint shapes the
-design."* Two options existed:
+design."* (See 1.11 for the pmagent-track twin of this same feature — same
+idea, no Snowflake-managed connector runtime to lean on.) Two options
+existed:
 
 1. Call Lucid's REST API directly from a stored procedure, using a
    Snowflake `EXTERNAL ACCESS INTEGRATION` (network rule + secret) so the
@@ -807,6 +919,7 @@ any LLM-based agent system:
 | Change what a PRD contains | `pmagent/state.py` (`PRD`), `pmagent/skills/prd/SKILL.md` |
 | Change an agent's behavior/tone | the matching `pmagent/prompts/*.md` file — not the Python |
 | Add a new specialist agent (pmagent) | copy `pmagent/agents/ticket_agent.py`'s shape: declare `TOOLS` + `SYSTEM_PROMPT`, wire with `agents/common.py` helpers |
+| Wire a new external MCP server into a pmagent lane | follow `pmagent/tools/mcp_tools.py`'s pattern: one entry in `_SERVERS`, one `get_..._tools()` wrapper, composed via an async `build_tools()` in the lane (see `agents/diagram_agent.py`, and 1.11) |
 | Change sprint risk thresholds | `compute_sprint_metrics` in `pmagent/tools/jira_tools.py` (plain code, not a prompt) |
 | Point the app at real Jira | set `JIRA_BASE_URL`/`JIRA_EMAIL`/`JIRA_API_TOKEN` in `.env` — `JiraClient` flips automatically |
 | Add a new Cortex stored-proc agent | copy `snowflake/procs/reporting_intent.py`'s shape: `_complete`/`_extract_json` via `cortex_common`, plain-Python formatting, register in `snowflake.yml` |

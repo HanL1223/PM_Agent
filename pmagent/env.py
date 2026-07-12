@@ -36,8 +36,12 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 #Jira Confirguration
 JIRA_BASE_URL = os.getenv("JIRA_BASE_URL")
 # Atlassian account email, should be a service account later on
-JIRA_EMAIL = os.getenv("JIRA_EMAIL")                
+JIRA_EMAIL = os.getenv("JIRA_EMAIL")
 JIRA_API_TOKEN = os.getenv("JIRA_API_TOKEN")
+JIRA_PROJECT_KEY = os.getenv("JIRA_PROJECT_KEY", "CSCI")
+# Custom field id for story points. Sigma's "Story point estimate" field is
+# customfield_10052 — override if your Jira instance uses a different id.
+JIRA_STORY_POINTS_FIELD = os.getenv("JIRA_STORY_POINTS_FIELD", "customfield_10052").strip()
 
 
 
@@ -50,6 +54,16 @@ JIRA_MOCK = (
 
 # Optional observability via LangSmith
 LANGSMITH_API_KEY = os.getenv("LANGSMITH_API_KEY")
+
+
+# MCP (Model Context Protocol) servers.
+# Lucid's hosted MCP server (diagram search/create) — see
+# pmagent/tools/mcp_tools.py for the client that uses these, and
+# ../snowflake/sql/lucid_mcp_setup.sql for the equivalent Snowflake-side setup.
+# Unset LUCID_MCP_AUTH_TOKEN is fine if your Lucid plan relies on Dynamic
+# Client Registration (per-user OAuth) rather than a static client secret.
+LUCID_MCP_URL = os.getenv("LUCID_MCP_URL", "https://mcp.lucid.app/mcp")
+LUCID_MCP_AUTH_TOKEN = os.getenv("LUCID_MCP_AUTH_TOKEN")
 
 
 
