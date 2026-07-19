@@ -43,7 +43,9 @@ def make_agent_node(system_prompt:str, llm_with_tools:BaseChatModel) -> callable
         # Returning a partial dict lets the `add_messages` reducer append rather
         # than overwrite — cleaner than mutating `state` directly.
         return {"messages": [response]}
-    
+
+    return node
+
 def make_tools_router(tools_node_name: str) -> Callable:
     """
     Return a conditional-edge function: go to this lane's tools node if the
