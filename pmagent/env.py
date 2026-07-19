@@ -66,6 +66,12 @@ LUCID_MCP_URL = os.getenv("LUCID_MCP_URL", "https://mcp.lucid.app/mcp")
 LUCID_MCP_AUTH_TOKEN = os.getenv("LUCID_MCP_AUTH_TOKEN")
 
 
+# Microsoft Graph delegated access for the approval-gated spreadsheet tool.
+# A public-client app registration is required; no client secret is used.
+SPREADSHEET_TENANT_ID = os.getenv("SPREADSHEET_TENANT_ID")
+SPREADSHEET_CLIENT_ID = os.getenv("SPREADSHEET_CLIENT_ID")
+
+
 
 def validate() -> None:
     """Fail fast if the minimum config for the selected provider is missing.

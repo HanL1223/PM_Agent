@@ -169,12 +169,14 @@ class RouteDecision(BaseModel):
     deterministic 'router' the blueprint recommends keeping separate from the
     work itself.
     """
-    route: Literal["ticket", "sprint", "query", "requirements"] = Field(
+    route: Literal["ticket", "sprint", "query", "requirements", "spreadsheet"] = Field(
         description=(
             "ticket = user wants to create/draft a Jira issue; "
             "sprint = user asks about sprint health/progress/blockers/standup; "
             "requirements = user provides requirements/meeting notes and wants a "
             "PRD / requirements document written; "
+            "spreadsheet = user wants to propose or apply an approved update to a "
+            "project-control spreadsheet; "
             "query = any other read-only question (search issues, look something up, chit-chat)."
         )
     )
@@ -204,3 +206,4 @@ class PMState(BaseModel):
     sprint_report: dict = {}
     prd: dict = {}
     diagram_brief: dict = {}
+    spreadsheet_update: dict = {}

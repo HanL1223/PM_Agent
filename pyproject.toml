@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "jira-pm-agent"
 version = "0.1.0"
@@ -22,9 +26,11 @@ dependencies = [
     "requests>=2.32.0",
 ]
 
-[tool.setuptools]
-# Only the agent package is installed; the frontend imports it.
-packages = ["pmagent"]
+[tool.setuptools.packages.find]
+include = ["pmagent*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
 
 [dependency-groups]
 # Dev-only tooling. langgraph-cli/api let you run `langgraph dev` (Studio) and

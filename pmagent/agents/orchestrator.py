@@ -58,5 +58,6 @@ def route_from_classifier(state: PMState) -> str:
     return {
         "ticket": "ticket_agent",
         "sprint": "sprint_agent",
+        "spreadsheet": "spreadsheet_agent",
         "query": "query_agent",
     }[state.route]

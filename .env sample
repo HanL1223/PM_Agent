@@ -39,3 +39,9 @@ JIRA_STORY_POINTS_FIELD=customfield_10052
 # otherwise the first Lucid tool call triggers a one-time per-user OAuth
 # login (Dynamic Client Registration) and no token is needed here.
 # LUCID_MCP_AUTH_TOKEN=
+
+# --- Microsoft Graph spreadsheet tool --------------------------------------
+# Public-client app registration used with delegated device-code sign-in.
+# The agent stores its token cache outside the repository.
+SPREADSHEET_TENANT_ID=
+SPREADSHEET_CLIENT_ID=
